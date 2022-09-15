@@ -1,0 +1,50 @@
+#RUTA DE COMPRA
+@app.route('/shopping.product', methods=['POST'])
+def shopping_product():
+  try:
+      id_producto = request.json['id_product']
+      exists =  existence(id_producto)
+      quantity = request.json['quantity']
+      if (exists != False) and (exists[3] > 0) and (exists[3] > quantity):
+          price = exists[2] * quantity
+          name_person = request.json['name_person']
+          
+          my_cursor = mysql.connection.cursor()
+          my_cursor.execute('INSERT INTO shopping (id_product, price, quantity, name_person) VALUES (%s,%s,%s, %s)',(id_producto, price, quantity,name_person))
+          mysql.connection.commit()
+          
+          subtract = exists[3] - quantity
+          
+          if subtract_quantity(id_producto, subtract):
+              return jsonify({'Message: ': 'Product purchased successfully!!'})
+          else:
+              return jsonify({'Error': 'Oops!!! an error has occurred'})
+      else:
+          return jsonify({'Warning': 'Product does not exists or there is not enough quantity to buy!!'})
+  except:
+        return jsonify({'Error': 'Oops!!! an error has occurred'})
+
+#FUNCIÓN QUE RESTA LA CANTIDAD DEL PRODUCTO
+def subtract_quantity(id_product, subtract):
+    try:
+        my_cursor = mysql.connection.cursor()
+        my_cursor.execute('UPDATE products SET quantity = %s WHERE products.id = %s', (subtract, id_product))
+        mysql.connection.commit()
+        return True    
+    except:
+        return False
+
+#FUNCIÓN QUE VERIFICA LA EXISTENCIA DEL PRODUCTO
+def existence(id_producto):
+    try:
+        my_cursor = mysql.connection.cursor()
+        my_cursor.execute('SELECT * FROM products WHERE id = %s',(id_producto,))
+        value = my_cursor.fetchone()
+        
+        if value != None:
+          return value
+        else:
+          return False
+    
+    except:
+          return jsonify({'Error': 'You must send a valid id'})
